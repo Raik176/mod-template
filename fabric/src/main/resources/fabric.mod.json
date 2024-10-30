@@ -3,23 +3,23 @@
   "id": "${id}",
   "version": "${version}",
   "name": "${name}",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "description": "${description}",
   "authors": [
-    "Me!"
+    "${author}"
   ],
   "contact": {
+
   },
-  "license": "CC0-1.0",
+  "license": "${license}",
   "icon": "assets/${id}/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.example.template.fabric.TemplateModFabric"
+      "${group}.${id}.fabric.TemplateModFabric"
     ]
   },
   "mixins": [
-    "template-common.mixins.json",
-    "template-fabric.mixins.json"
+    "${id}-common.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.15",

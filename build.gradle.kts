@@ -8,6 +8,9 @@ plugins {
 
 val minecraft = stonecutter.current.version
 
+extra["githubRepo"] = "CHANGE/THIS"
+extra["modrinthId"] = "N/A"
+
 version = "${mod.version}+$minecraft"
 group = "${mod.group}.common"
 base {
@@ -59,7 +62,7 @@ publishMods {
 
     github {
         accessToken = providers.environmentVariable("GITHUB_TOKEN")
-        repository = "CHANGE/THIS"
+        repository = extra["githubRepo"].toString()
         commitish = "master"
         tagName = "v${mod.version}"
 

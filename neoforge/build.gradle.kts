@@ -1,7 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
 import net.fabricmc.loom.task.RemapJarTask
-import org.gradle.kotlin.dsl.from
 
 
 plugins {
@@ -138,7 +137,7 @@ publishMods {
 
     modrinth {
         accessToken = providers.environmentVariable("MODRINTH_API_KEY")
-        projectId = "oQborhDc"
+        projectId = common.extra["modrinthId"].toString()
         minecraftVersions.addAll(common.mod.prop("mc_targets").split(" "))
         projectDescription = providers.fileContents(common.layout.projectDirectory.file("../../README.md")).asText.get()
     }

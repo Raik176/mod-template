@@ -46,10 +46,6 @@ configurations {
 
 repositories {
     maven("https://maven.minecraftforge.net")
-    maven {
-        name = "Jared's maven"
-        url = uri("https://maven.blamejared.com/")
-    }
 }
 
 dependencies {
@@ -147,7 +143,7 @@ publishMods {
 
     modrinth {
         accessToken = providers.environmentVariable("MODRINTH_API_KEY")
-        projectId = "oQborhDc"
+        projectId = common.extra["modrinthId"].toString()
         minecraftVersions.addAll(common.mod.prop("mc_targets").split(" "))
         projectDescription = providers.fileContents(common.layout.projectDirectory.file("../../README.md")).asText.get()
     }

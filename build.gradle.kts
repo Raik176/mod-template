@@ -10,6 +10,7 @@ val minecraft = stonecutter.current.version
 
 extra["githubRepo"] = "CHANGE/THIS"
 extra["modrinthId"] = "N/A"
+extra["curseforgeId"] = "N/A"
 
 version = "${mod.version}+$minecraft"
 group = "${mod.group}.common"

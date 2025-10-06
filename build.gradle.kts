@@ -1,16 +1,11 @@
-import org.gradle.kotlin.dsl.version
+@file:Suppress("UNCHECKED_CAST")
 
 plugins {
     id("dev.architectury.loom")
     id("architectury-plugin")
-    id("me.modmuss50.mod-publish-plugin") version "0.7.4"
 }
 
 val minecraft = stonecutter.current.version
-
-extra["githubRepo"] = "CHANGE/THIS"
-extra["modrinthId"] = "N/A"
-extra["curseforgeId"] = "N/A"
 
 version = "${mod.version}+$minecraft"
 group = "${mod.group}.common"
@@ -20,7 +15,7 @@ base {
 
 architectury.common(stonecutter.tree.branches.mapNotNull {
     if (stonecutter.current.project !in it) null
-    else it.prop("loom.platform")
+    else it.project.prop("loom.platform")
 })
 
 dependencies {
@@ -45,8 +40,12 @@ loom {
 
 java {
     withSourcesJar()
-    val java = if (stonecutter.eval(minecraft, ">=1.20.5"))
-        JavaVersion.VERSION_21 else JavaVersion.VERSION_17
+
+    val java = when {
+        stonecutter.eval(minecraft, ">=1.20.5") -> JavaVersion.VERSION_21
+        stonecutter.eval(minecraft, ">=1.17") -> JavaVersion.VERSION_17
+        else -> JavaVersion.VERSION_1_8
+    }
     targetCompatibility = java
     sourceCompatibility = java
 }
@@ -54,21 +53,4 @@ java {
 tasks.build {
     group = "versioned"
     description = "Must run through 'chiseledBuild'"
-}
-
-publishMods {
-    changelog = providers.fileContents(layout.projectDirectory.file("../../CHANGELOG.md")).asText.get()
-    type = STABLE
-    displayName = "${mod.version} for $minecraft"
-
-    github {
-        accessToken = providers.environmentVariable("GITHUB_TOKEN")
-        repository = extra["githubRepo"].toString()
-        commitish = "master"
-        tagName = "v${mod.version}"
-
-        allowEmptyFiles = true
-    }
-
-    dryRun = providers.environmentVariable("PUBLISH_DRY_RUN").isPresent
 }

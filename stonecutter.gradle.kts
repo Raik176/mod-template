@@ -20,10 +20,6 @@ plugins {
     id("me.modmuss50.mod-publish-plugin") version "1.0.0"
 }
 stonecutter active "1.20.6" /* [SC] DO NOT EDIT */
-stonecutter parameters {
-    val loader = node.metadata.project.substringAfter('-')
-    constants.match(loader, "fabric", "forge", "neoforge")
-}
 
 val changelogProvider = providers.fileContents(layout.projectDirectory.file("CHANGELOG.md")).asText
 

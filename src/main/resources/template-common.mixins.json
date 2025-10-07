@@ -2,10 +2,10 @@
   "required": true,
   "package": "com.example.template.mixin",
   "compatibilityLevel": "JAVA_17",
-  "mixins": [
-    "ExampleMixin"
-  ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "client": [
+    "ExampleMixin"
+  ]
 }

@@ -23,7 +23,8 @@ plugins {
 }
 stonecutter active "1.20.6" /* [SC] DO NOT EDIT */
 
-val changelogProvider = providers.fileContents(layout.projectDirectory.file("CHANGELOG.md")).asText
+val changelogProvider = layout.buildDirectory.file("CHANGELOG.md")
+val changelogContentsProvider = providers.fileContents(changelogProvider).asText
 
 @OptIn(ExperimentalSerializationApi::class)
 fun generatePayload(): JsonObject {
@@ -45,7 +46,7 @@ fun generatePayload(): JsonObject {
         putJsonArray("embeds") {
             add(buildJsonObject {
                 put("title", "${mod.name} ${mod.version} has been released!")
-                put("description", changelogProvider.get())
+                put("description", changelogContentsProvider.get())
                 put("color", 7506394)
                 iconUrl?.let { putJsonObject("thumbnail") { put("url", it) } }
             })
@@ -87,7 +88,7 @@ for (node in stonecutter.tree.nodes) {
     if (node.branch.id.isEmpty() || node.metadata.version != stonecutter.current?.version) continue
     for (type in listOf("Client", "Server")) tasks.register("runActive$type${node.branch.id.upperCaseFirst()}") {
         group = "project"
-        dependsOn("${node.hierarchy}run$type")
+        dependsOn("${node.hierarchy}:run$type")
     }
 }
 
@@ -127,7 +128,7 @@ tasks.named("publishMods") {
 
 publishMods {
     version = mod.version
-    changelog = changelogProvider
+    changelog = changelogContentsProvider
     type = STABLE
     displayName = mod.version
 
@@ -171,6 +172,7 @@ fun getLatestTag(): String {
 }
 
 tasks.gitChangelog {
+    file.set(changelogProvider.map { it.asFile })
     fromRevision.set(getLatestTag())
     toRevision.set("HEAD")
 

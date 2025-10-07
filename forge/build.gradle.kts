@@ -102,7 +102,7 @@ tasks.withType<RemapSourcesJarTask> {
 
 publishMods {
     file = tasks.remapJar.get().archiveFile
-    changelog = rootProject.extra["changelog"] as String
+    changelog = rootProject.publishMods.changelog
     modLoaders.add("forge")
     type = STABLE
     displayName = "${common.mod.version} for Forge $minecraft"

@@ -24,7 +24,7 @@ fletchingTable {
 
 dependencies {
     modImplementation("net.fabricmc:fabric-loader:${mod.dep("fabric_loader")}")
-    modImplementation(fletchingTable.modrinth("fabric-api", minecraft)) // who needs the sources jar anyway
+    modImplementation("net.fabricmc.fabric-api:fabric-api:${common.mod.dep("fabric_api")}")
 }
 
 fun convertMinecraftTargets(): String {

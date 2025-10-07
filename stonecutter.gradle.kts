@@ -359,5 +359,4 @@ tasks.gitChangelog {
 {{/commits}}
 {{/ifContainsType}}
 """)
-    file.set(rootProject.layout.projectDirectory.file("CHANGELOG.md").asFile)
 }

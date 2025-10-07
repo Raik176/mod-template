@@ -94,8 +94,7 @@ tasks.register("build") {
 }
 
 for (node in stonecutter.tree.nodes) {
-    if (node.metadata.version != stonecutter.current?.version)
-        continue
+    val minecraft = node.metadata.version
 
     node.project.repositories {
         fun strictMaven(url: String, alias: String, vararg groups: String) = exclusiveContent {
@@ -111,11 +110,30 @@ for (node in stonecutter.tree.nodes) {
 
     node.project.afterEvaluate {
         val projectStonecutter = node.project.extensions.getByType<dev.kikugie.stonecutter.build.StonecutterBuildExtension>()
-        val minecraft = projectStonecutter.current.version
         val loader = node.project.prop("loom.platform") ?: "common"
         val common: Project = requireNotNull(projectStonecutter.node.sibling("")) {
             "No common project for $project"
         }.project
+
+        node.project.dependencies {
+            "io.github.llamalad7:mixinextras-common:${mod.dep("mixin_extras")}".let {
+                add("annotationProcessor", it)
+                add("implementation", it)
+            }
+
+            add("minecraft", "com.mojang:minecraft:$minecraft")
+            add(
+                "mappings",
+                node.project.extensions.getByType<net.fabricmc.loom.api.LoomGradleExtensionAPI>().officialMojangMappings()
+            )
+
+            if (loader != "common") {
+                project(common.path, "namedElements").let {
+                    add("implementation", it)
+                    add("include", it)
+                }
+            }
+        }
 
         if (loader != "common") {
             node.project.tasks.withType<RemapJarTask> {
@@ -157,26 +175,6 @@ for (node in stonecutter.tree.nodes) {
             archivesName.set("${mod.id}-$loader")
         }
 
-        node.project.dependencies {
-            add("minecraft", "com.mojang:minecraft:$minecraft")
-            add(
-                "mappings",
-                node.project.extensions.getByType<net.fabricmc.loom.api.LoomGradleExtensionAPI>().officialMojangMappings()
-            )
-
-            "io.github.llamalad7:mixinextras-common:${mod.dep("mixin_extras")}".let {
-                add("annotationProcessor", it)
-                add("implementation", it)
-            }
-
-            if (loader != "common") {
-                project(common.path, "namedElements").let {
-                    add("implementation", it)
-                    add("include", it)
-                }
-            }
-        }
-
         node.project.extensions.configure<JavaPluginExtension> {
             withSourcesJar()
             val java = when {
@@ -212,7 +210,7 @@ for (node in stonecutter.tree.nodes) {
         }
     }
 
-    if (!node.branch.id.isEmpty()) {
+    if (!node.branch.id.isEmpty() && node.metadata.version == stonecutter.current?.version) {
         for (type in listOf("Client", "Server")) tasks.register("runActive$type${node.branch.id.upperCaseFirst()}") {
             group = "project"
             dependsOn("${node.hierarchy}:run$type")

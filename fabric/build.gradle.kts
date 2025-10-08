@@ -48,4 +48,14 @@ tasks.processResources {
 publishMods {
     modLoaders.addAll("fabric", "quilt")
     displayName = "${common.mod.version} for Fabric $minecraft"
+
+    modrinth {
+        requires {
+            slug = "fabric-api"
+        }
+    }
+
+    curseforge {
+        requires("fabric-api")
+    }
 }

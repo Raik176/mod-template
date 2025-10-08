@@ -1,4 +1,3 @@
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -15,6 +14,18 @@ import org.gradle.kotlin.dsl.withType
 import java.net.HttpURLConnection
 import java.net.URI
 
+buildscript {
+    configurations.all {
+        resolutionStrategy {
+            force(
+                "com.fasterxml.jackson.core:jackson-core:2.17.1",
+                "com.fasterxml.jackson.core:jackson-databind:2.17.1",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.1",
+                "com.fasterxml.jackson.core:jackson-annotations:2.17.1"
+            )
+        }
+    }
+}
 
 plugins {
     id("dev.kikugie.stonecutter")
@@ -33,54 +44,14 @@ plugins {
 stonecutter active "1.20.6" /* [SC] DO NOT EDIT */
 
 val changelogProvider = layout.buildDirectory.file("CHANGELOG.md")
-val changelogContentsProvider = providers.fileContents(changelogProvider).asText
-
-@OptIn(ExperimentalSerializationApi::class)
-fun generatePayload(): JsonObject {
-    val modrinthJson = try {
-        val url = URI("https://api.modrinth.com/v2/project/${mod.prop("modrinthSlug")}").toURL()
-        with(url.openConnection() as HttpURLConnection) {
-            requestMethod = "GET"
-            inputStream.bufferedReader().readText()
-        }
-    } catch (_: Exception) {
-        null
-    }
-
-    val iconUrl = modrinthJson?.let {
-        Json.parseToJsonElement(it).jsonObject["icon_url"]?.jsonPrimitive?.contentOrNull
-    }
-
-    return buildJsonObject {
-        putJsonArray("embeds") {
-            add(buildJsonObject {
-                put("title", "${mod.name} ${mod.version} has been released!")
-                put("description", changelogContentsProvider.get())
-                put("color", 7506394)
-                iconUrl?.let { putJsonObject("thumbnail") { put("url", it) } }
-            })
-        }
-        putJsonArray("components") {
-            add(buildJsonObject {
-                put("type", 1)
-                putJsonArray("components") {
-                    listOf(
-                        "Modrinth" to "https://modrinth.com/mod/${mod.prop("modrinthSlug")}",
-                        "CurseForge" to "https://www.curseforge.com/minecraft/mc-mods/${mod.prop("curseforgeSlug")}",
-                        "GitHub" to "https://github.com/${mod.prop("github")}"
-                    ).forEach { (label, url) ->
-                        add(buildJsonObject {
-                            put("type", 2)
-                            put("style", 5)
-                            put("label", label)
-                            put("url", url)
-                        })
-                    }
-                }
-            })
-        }
+changelogProvider.get().asFile.apply {
+    if (!exists()) {
+        parentFile?.mkdirs()
+        createNewFile()
     }
 }
+
+val changelogContentsProvider = providers.fileContents(changelogProvider)
 
 tasks.register("build") {
     group = "build"
@@ -145,7 +116,7 @@ for (node in stonecutter.tree.nodes) {
 
             node.project.extensions.configure<me.modmuss50.mpp.ModPublishExtension> {
                 file.set(node.project.tasks.named("remapJar", RemapJarTask::class.java).flatMap { it.archiveFile })
-                changelog = rootProject.publishMods.changelog
+                changelog = changelogContentsProvider.asText
                 type = STABLE
 
                 modrinth {
@@ -225,7 +196,7 @@ tasks.named("publishMods") {
 tasks.register("publishMod") {
     group = "publishing"
 
-    dependsOn(tasks.named("gitChangelog"))
+    dependsOn(tasks.gitChangelog)
 
     stonecutter.tree.nodes.forEach {
         it.project.tasks.findByName("publishMods")?.let { publishTask ->
@@ -236,11 +207,56 @@ tasks.register("publishMod") {
     dependsOn(tasks.named("publishGithub"))
 
     doLast {
+        if (providers.environmentVariable("PUBLISH_DRY_RUN").isPresent)
+            return@doLast
+
         with(URI(providers.environmentVariable("DISCORD_WEBHOOK").get()).toURL().openConnection() as HttpURLConnection) {
             requestMethod = "POST"
             setRequestProperty("Content-Type", "application/json")
             doOutput = true
-            outputStream.write(Json.encodeToString(JsonObject.serializer(), generatePayload()).toByteArray())
+            val modrinthJson = try {
+                val url = URI("https://api.modrinth.com/v2/project/${mod.prop("modrinthSlug")}").toURL()
+                with(url.openConnection() as HttpURLConnection) {
+                    requestMethod = "GET"
+                    inputStream.bufferedReader().readText()
+                }
+            } catch (_: Exception) {
+                null
+            }
+
+            val iconUrl = modrinthJson?.let {
+                Json.parseToJsonElement(it).jsonObject["icon_url"]?.jsonPrimitive?.contentOrNull
+            }
+
+            outputStream.write(Json.encodeToString(JsonObject.serializer(), buildJsonObject {
+                putJsonArray("embeds") {
+                    add(buildJsonObject {
+                        put("title", "${mod.name} ${mod.version} has been released!")
+                        put("description", changelogContentsProvider.asText.get())
+                        put("color", 7506394)
+                        iconUrl?.let { putJsonObject("thumbnail") { put("url", it) } }
+                    })
+                }
+                putJsonArray("components") {
+                    add(buildJsonObject {
+                        put("type", 1)
+                        putJsonArray("components") {
+                            listOf(
+                                "Modrinth" to "https://modrinth.com/mod/${mod.prop("modrinthSlug")}",
+                                "CurseForge" to "https://www.curseforge.com/minecraft/mc-mods/${mod.prop("curseforgeSlug")}",
+                                "GitHub" to "https://github.com/${mod.prop("github")}"
+                            ).forEach { (label, url) ->
+                                add(buildJsonObject {
+                                    put("type", 2)
+                                    put("style", 5)
+                                    put("label", label)
+                                    put("url", url)
+                                })
+                            }
+                        }
+                    })
+                }
+            }).toByteArray())
             if (responseCode != 204) {
                 println("Failed to send webhook: $responseCode")
             }
@@ -254,7 +270,7 @@ tasks.named("publishMods") {
 
 publishMods {
     version = mod.version
-    changelog = changelogContentsProvider
+    changelog = changelogContentsProvider.asText
     type = STABLE
     displayName = mod.version
 
@@ -284,6 +300,35 @@ tasks.gitChangelog {
     file.set(changelogProvider.map { it.asFile })
     fromRevision.set(getLatestTag())
     toRevision.set("HEAD")
+
+    doLast {
+        val changelogFile = tasks.gitChangelog.flatMap { it.file }.get()
+        if (!changelogFile.exists())
+            return@doLast
+
+        fun decodeHtmlNumericEntities(input: String): String {
+            val regex = Regex("&#(x?)([0-9A-Fa-f]+);")
+            return regex.replace(input) { match ->
+                val isHex = match.groupValues[1].equals("x", ignoreCase = true)
+                val numPart = match.groupValues[2]
+                val codePoint = runCatching {
+                    if (isHex) numPart.toInt(16) else numPart.toInt()
+                }.getOrNull()
+
+                if (codePoint != null && Character.isValidCodePoint(codePoint))
+                    String(Character.toChars(codePoint))
+                else
+                    match.value
+            }
+        }
+
+        val original = changelogFile.readText()
+        val decoded = decodeHtmlNumericEntities(original)
+
+        if (decoded != original) {
+            changelogFile.writeText(decoded)
+        }
+    }
 
     templateContent.set("""
 {{#ifContainsType commits type='feat'}}

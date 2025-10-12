@@ -326,19 +326,26 @@ publishMods {
     dryRun = providers.environmentVariable("PUBLISH_DRY_RUN").isPresent
 }
 
-fun getLatestTag(): String {
+fun getFirstCommitHash(): String {
+    val process = ProcessBuilder("git", "rev-list", "--max-parents=0", "HEAD")
+        .directory(rootProject.rootDir)
+        .start()
+    return process.inputStream.bufferedReader().readText().trim()
+}
+
+fun getLatestTag(): String? {
     val url = URI("https://api.github.com/repos/${mod.prop("github")}/tags").toURL()
     val connection = url.openConnection() as HttpURLConnection
 
     val response = connection.inputStream.bufferedReader().readText()
     val json = Json.parseToJsonElement(response).jsonArray
 
-    return json[0].jsonObject["name"]!!.jsonPrimitive.content
+    return json.firstOrNull()?.jsonObject?.get("name")?.jsonPrimitive?.content
 }
 
 tasks.gitChangelog {
     file.set(changelogProvider.map { it.asFile })
-    fromRevision.set(getLatestTag())
+    fromRevision.set(providers.provider { getLatestTag() ?: getFirstCommitHash() })
     toRevision.set("HEAD")
 
     doLast {

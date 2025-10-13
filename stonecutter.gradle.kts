@@ -98,6 +98,15 @@ for (node in stonecutter.tree.nodes) {
             isCanBeConsumed = false
             isCanBeResolved = true
         }
+        val fancyName = when (node.branch.id) {
+            "fabric" -> "Fabric"
+            "forge" -> "Forge"
+            "neoforge" -> "NeoForge"
+            "" -> "Common"
+            else -> {
+                TODO("Invalid branch: ${node.branch.id}")
+            }
+        }
 
         node.project.dependencies {
             add("minecraft", "com.mojang:minecraft:$minecraft")
@@ -110,7 +119,7 @@ for (node in stonecutter.tree.nodes) {
         node.project.configurations {
             named("compileClasspath") { extendsFrom(commonBundle) }
             named("runtimeClasspath") { extendsFrom(commonBundle) }
-            maybeCreate("developmentFabric").extendsFrom(commonBundle)
+            maybeCreate("development$fancyName").extendsFrom(commonBundle)
         }
 
         node.project.dependencies {
@@ -121,13 +130,17 @@ for (node in stonecutter.tree.nodes) {
 
             if (loader != "common") {
                 commonBundle(project(common.path, "namedElements")) { isTransitive = false }
-                shadowBundle(project(common.path, "transformProductionFabric")) { isTransitive = false }
+                shadowBundle(project(common.path, "transformProduction$fancyName")) { isTransitive = false }
             }
         }
 
         node.project.tasks.withType<ShadowJar> {
             configurations = listOf(shadowBundle)
             archiveClassifier = "dev-shadow"
+        }
+
+        node.project.tasks.named("validateAccessWidener") {
+            enabled = false
         }
 
         node.project.tasks.withType<RemapJarTask> {
@@ -315,6 +328,7 @@ publishMods {
     displayName = mod.version
 
     github {
+        changelog = rootProject.publishMods.changelog
         accessToken = providers.environmentVariable("GITHUB_TOKEN")
         repository = mod.prop("github")
         commitish = "main"
@@ -326,26 +340,19 @@ publishMods {
     dryRun = providers.environmentVariable("PUBLISH_DRY_RUN").isPresent
 }
 
-fun getFirstCommitHash(): String {
-    val process = ProcessBuilder("git", "rev-list", "--max-parents=0", "HEAD")
-        .directory(rootProject.rootDir)
-        .start()
-    return process.inputStream.bufferedReader().readText().trim()
-}
-
-fun getLatestTag(): String? {
+fun getLatestTag(): String {
     val url = URI("https://api.github.com/repos/${mod.prop("github")}/tags").toURL()
     val connection = url.openConnection() as HttpURLConnection
 
     val response = connection.inputStream.bufferedReader().readText()
     val json = Json.parseToJsonElement(response).jsonArray
 
-    return json.firstOrNull()?.jsonObject?.get("name")?.jsonPrimitive?.content
+    return json[0].jsonObject["name"]!!.jsonPrimitive.content
 }
 
 tasks.gitChangelog {
     file.set(changelogProvider.map { it.asFile })
-    fromRevision.set(providers.provider { getLatestTag() ?: getFirstCommitHash() })
+    fromRevision.set(getLatestTag())
     toRevision.set("HEAD")
 
     doLast {
@@ -370,10 +377,17 @@ tasks.gitChangelog {
         }
 
         val original = changelogFile.readText()
-        val decoded = decodeHtmlNumericEntities(original)
+        var processed = decodeHtmlNumericEntities(original)
 
-        if (decoded != original) {
-            changelogFile.writeText(decoded)
+        processed = Regex("""(?<=- )(.*?)(?= \(\[)""").replace(processed) { match ->
+            match.value.replace(Regex("#(\\d+)")) { issueMatch ->
+                val issueNumber = issueMatch.groupValues[1]
+                "[#$issueNumber](https://github.com/${mod.prop("github")}/issues/$issueNumber)"
+            }
+        }
+
+        if (processed != original) {
+            changelogFile.writeText(processed)
         }
     }
 

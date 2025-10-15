@@ -44,7 +44,7 @@ tasks.processResources {
         "minecraft" to convertMinecraftTargets()
     )
 
-    if (stonecutter.eval(minecraft, "<1.21.5")) {
+    if (stonecutter.eval(minecraft, "<1.20.5")) {
         filesMatching("neoforge.mods.toml") {
             name = "mods.toml"
         }

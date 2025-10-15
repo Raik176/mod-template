@@ -43,6 +43,12 @@ tasks.processResources {
         "license" to mod.prop("license"),
         "minecraft" to convertMinecraftTargets()
     )
+
+    if (stonecutter.eval(minecraft, "<1.21.5")) {
+        filesMatching("neoforge.mods.toml") {
+            name = "mods.toml"
+        }
+    }
 }
 
 publishMods {

@@ -134,23 +134,19 @@ for (node in stonecutter.tree.nodes) {
             }
         }
 
-        node.project.tasks.withType<ShadowJar> {
+        node.project.tasks.named<ShadowJar>("shadowJar") {
             configurations = listOf(shadowBundle)
             archiveClassifier = "dev-shadow"
         }
 
-        node.project.tasks.named("validateAccessWidener") {
-            enabled = false
-        }
-
-        node.project.tasks.withType<RemapJarTask> {
+        node.project.tasks.named<RemapJarTask>("remapJar") {
             injectAccessWidener = true
-            input = node.project.tasks.shadowJar.get().archiveFile
+            inputFile = node.project.tasks.shadowJar.get().archiveFile
             archiveClassifier = null
             dependsOn(node.project.tasks.shadowJar)
         }
 
-        node.project.tasks.withType<Jar> {
+        node.project.tasks.named<Jar>("jar") {
             archiveClassifier = "dev"
         }
 

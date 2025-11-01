@@ -12,6 +12,15 @@ pluginManagement {
 
 plugins {
     id("dev.kikugie.stonecutter") version "0.7.1"
+    id("org.danilopianini.gradle-pre-commit-git-hooks") version "2.1.4"
+}
+
+gitHooks {
+    preCommit {
+        tasks("\"Reset active project\"")
+    }
+
+    createHooks()
 }
 
 stonecutter {

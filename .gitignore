@@ -1,46 +1,39 @@
-.architectury-transformer/
-
-# gradle
-
 .gradle/
-build/
-out/
-classes/
 
-# eclipse
+/build/
+/versions/*/*/build/
+/buildSrc/build/
+/buildSrc/build-logic/build/
+/buildSrc/build-logic/*/build/
 
-*.launch
+!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.properties
 
-# idea
+/src/**/generated/**/.cache/
+
+/versions/*/*/run/
+/versions/*/build/
+/run/
+/runs/
 
 .idea/
 *.iml
 *.ipr
 *.iws
+/out/
 
-# vscode
-
-.settings/
 .vscode/
-bin/
-.classpath
+
 .project
+.classpath
+.settings/
+/bin/
+/versions/*/*/bin/
 
-# macos
+.fleet/
+*.swp
+*~
 
-*.DS_Store
-
-# fabric
-
-run/
-
-# java
-
-hs_err_*.log
-replay_*.log
-*.hprof
-*.jfr
-
-# other
-
-.env
+.DS_Store
+Thumbs.db
+desktop.ini

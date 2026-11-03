@@ -1,0 +1,61 @@
+def node = project.ext.modNode
+def mc = node.mc
+
+def legacyModules = (mc =~ /^1\.(17|18)(\.|$)/).find()
+
+def refmapProperties = node.srgToNamed ? [
+    '-Dmixin.env.remapRefMap=true',
+    "-Dmixin.env.refMapRemappingFile=${node.srgToNamed.absolutePath}".toString(),
+] : []
+
+minecraft {
+    mappings channel: 'official', version: mc
+
+    runs {
+        register('client') {
+            workingDir = node.runDir
+            node.mixinConfigs.each { args "--mixin.config=${it}" }
+            refmapProperties.each { jvmArgs it }
+            if (legacyModules) jvmArgs '--add-opens', 'cpw.mods.bootstraplauncher/cpw.mods.bootstraplauncher=ALL-UNNAMED'
+        }
+        register('server') {
+            workingDir = node.runDir
+            args '--nogui'
+            node.mixinConfigs.each { args "--mixin.config=${it}" }
+            refmapProperties.each { jvmArgs it }
+            if (legacyModules) jvmArgs '--add-opens', 'cpw.mods.bootstraplauncher/cpw.mods.bootstraplauncher=ALL-UNNAMED'
+        }
+    }
+}
+
+minecraft.mavenizer(repositories)
+repositories {
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+}
+
+sourceSets.configureEach { ss ->
+    def merged = layout.buildDirectory.dir("sourcesSets/${ss.name}").get().asFile
+    ss.output.resourcesDir = merged
+    ss.java.destinationDirectory.set(merged)
+}
+
+dependencies {
+    implementation minecraft.dependency("net.minecraftforge:forge:${mc}-${node.loaderVersion}")
+}
+
+if (node.mixinBootstrap) {
+    repositories {
+        exclusiveContent {
+            forRepository { maven { name = 'Modrinth'; url = 'https://api.modrinth.com/maven' } }
+            filter { includeGroup 'maven.modrinth' }
+        }
+    }
+    dependencies {
+        runtimeOnly 'maven.modrinth:mixinbootstrap:1.1.0'
+    }
+}
+
+if (node.accessTransformer) {
+    logger.lifecycle("[${node.nodeName}] access transformer: ${node.accessTransformerPath}")
+}

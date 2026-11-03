@@ -1,0 +1,33 @@
+def node = project.ext.modNode
+
+neoForge {
+    version = node.loaderVersion
+
+    if (node.accessTransformer) {
+        try {
+            accessTransformers.from(node.accessTransformer)
+        } catch (MissingMethodException | MissingPropertyException e) {
+            logger.warn("[${node.nodeName}] could not register the access transformer with ModDevGradle: ${e.message}")
+        }
+    }
+
+    runs {
+        client {
+            client()
+            gameDirectory = node.runDir
+            disableIdeRun()
+        }
+        server {
+            server()
+            gameDirectory = node.runDir
+            programArgument '--nogui'
+            disableIdeRun()
+        }
+    }
+
+    mods {
+        "${node.modId}" {
+            sourceSet sourceSets.main
+        }
+    }
+}

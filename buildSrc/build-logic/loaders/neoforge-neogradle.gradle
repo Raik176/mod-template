@@ -1,0 +1,49 @@
+def node = project.ext.modNode
+
+runs {
+    configureEach { run ->
+        run.modSource sourceSets.main
+        run.workingDirectory node.runDir
+    }
+    client { }
+    server {
+        arguments '--nogui'
+    }
+}
+
+if (node.accessTransformer) {
+    def registered = false
+    try {
+        accessTransformers {
+            file node.accessTransformer
+        }
+        registered = true
+    } catch (MissingMethodException | MissingPropertyException ignored) {
+    }
+    if (!registered) {
+        try {
+            minecraft {
+                accessTransformers {
+                    file node.accessTransformer
+                }
+            }
+            registered = true
+        } catch (MissingMethodException | MissingPropertyException e) {
+            logger.warn("[${node.nodeName}] could not register the access transformer with NeoGradle: ${e.message}")
+        }
+    }
+    if (registered) {
+        logger.lifecycle("[${node.nodeName}] access transformer: ${node.accessTransformerPath}")
+    }
+}
+
+repositories {
+    maven {
+        name = 'NeoForged'
+        url = 'https://maven.neoforged.net/releases'
+    }
+}
+
+dependencies {
+    implementation "net.neoforged:neoforge:${node.loaderVersion}"
+}

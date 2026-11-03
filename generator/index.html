@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mod generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Pixelify+Sans:wght@500;600&display=swap">
+<style>
+  :root { --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; --pix:"Pixelify Sans", "IBM Plex Sans", system-ui, sans-serif; --grp:rgba(255,255,255,.5); --bg:#f2f2ef; --field:#fff; --fg:#1a1b1e; --dim:#686a71; --line:#d3d3cd; --green:#4a9a2c; --dark:#1b1c20; --dark2:#2a2c32; --dline:#383a42; --dfg:#e9e9ec; --ddim:#8e919a; }
+  @media (prefers-color-scheme: dark) { :root { --grp:rgba(255,255,255,.03); --bg:#27282c; --field:#1b1c1f; --fg:#ebebed; --dim:#9b9da5; --line:#3d3f45; --dark:#131416; --dark2:#232529; --dline:#303238; } }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--sans); }
+  code, .m, input.m, pre { font-family: var(--mono); font-size: 12.5px; }
+  .dim { color: var(--dim); }
+  .page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(440px, 42%); min-height: 100vh; }
+  form { width: 100%; max-width: 800px; margin: 0 auto; padding: 34px 56px 100px; }
+  aside { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 14px; padding: 26px 26px 22px; background: var(--dark); color: var(--dfg); min-width: 0; }
+  @media (max-width: 1000px) { .page { display: block; } aside { position: static; height: auto; } .files { height: 460px; } }
+
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo { image-rendering: pixelated; flex: none; }
+  .brand b { font: 600 20px/1 var(--pix); white-space: nowrap; }
+  @media (max-width: 560px) { #src { display: none; } #f-name { font-size: 30px; } }
+  #src { margin: 0 0 0 auto; font-size: 12.5px; color: var(--dim); text-align: right; }
+  #name-wrap { margin: 34px 0 0; }
+  #f-name { width: 100%; height: auto; padding: 2px 0 8px; border: 0; border-bottom: 2px solid var(--line); border-radius: 0; background: none; box-shadow: none; color: var(--fg); font: 600 44px/1.15 var(--pix); letter-spacing: 0; }
+  #f-name::placeholder { opacity: .4; }
+  #f-name:focus { outline: none; border-color: var(--green); }
+  #derived { margin: 8px 0 0; min-height: 21px; color: var(--dim); font-size: 12.5px; }
+  .sec { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 0 36px; padding: 28px 0; border-top: 1px solid var(--line); }
+  .sec:first-of-type { margin-top: 30px; }
+  .rail h2 { margin: 0; font: 600 18px/1.2 var(--pix); }
+  .rail p { margin: 7px 0 0; color: var(--dim); font-size: 12.5px; line-height: 1.45; }
+  @media (max-width: 760px) { .sec { grid-template-columns: 1fr; gap: 14px; } }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 14px; }
+  .g2 + .fld, .g2 + .g2, .fld + .g2 { margin-top: 14px; }
+  @media (max-width: 560px) { .g2 { grid-template-columns: 1fr; } form { padding: 24px 18px 70px; } }
+  .fld { display: flex; flex-direction: column; gap: 4px; margin-top: 0; min-width: 0; }
+  .msgs:empty { display: none; }
+  .fld > label, label.fld > span:first-child { font-size: 12.5px; font-weight: 500; color: var(--dim); }
+  input[type=text], select { width: 100%; height: 34px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 3px; background: var(--field); color: var(--fg); font: inherit; }
+  input.m { font-family: var(--mono); font-size: 12.5px; }
+  input::placeholder { color: var(--dim); opacity: .65; }
+  input[type=checkbox], input[type=radio] { accent-color: var(--green); margin: 0; }
+  input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible, .hint:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+  input[type=text]:focus-visible, select:focus-visible { outline-offset: -1px; }
+  [aria-invalid="true"] { border-color: #d6453d !important; }
+  button { font: inherit; height: 34px; padding: 0 14px; border: 1px solid var(--line); border-radius: 3px; background: var(--field); color: var(--fg); cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--dim); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.sm { height: 28px; padding: 0 10px; font-size: 13px; }
+  button.go { height: 44px; padding: 0 26px; border: 2px solid #1e4a10; border-radius: 2px; background: var(--green); color: #fff; font-size: 15px; font-weight: 700; box-shadow: inset 0 -4px 0 rgba(0,0,0,.28), inset 0 2px 0 rgba(255,255,255,.22); }
+  button.go:hover:not(:disabled) { filter: brightness(1.1); border-color: #1e4a10; }
+  button.go:active:not(:disabled) { box-shadow: inset 0 3px 0 rgba(0,0,0,.28); }
+  aside button:not(.go) { background: var(--dark2); border-color: var(--dline); color: var(--dfg); }
+  .opt { margin-top: 10px; } .opt:first-child { margin-top: 0; } .opt label { display: inline-flex; gap: 9px; align-items: center; cursor: pointer; }
+  label.opt.sub { display: flex; gap: 8px; align-items: center; margin: 6px 0 0 27px; cursor: pointer; }
+
+  .hint { border-bottom: 1px dotted var(--dim); cursor: help; position: relative; }
+  .hint::after, .hint::before { position: absolute; left: 0; opacity: 0; visibility: hidden; pointer-events: none; z-index: 40; }
+  .hint::after { content: attr(data-tip); top: calc(100% + 6px); width: max-content; max-width: min(280px, 78vw); padding: 7px 10px; background: #100010; border: 2px solid #35127a; box-shadow: 0 0 0 2px #100010; color: #fff; font: 400 12.5px/1.45 system-ui, sans-serif; text-align: left; white-space: pre-line; }
+  .hint:hover::after, .hint:focus::after { opacity: 1; visibility: visible; }
+
+  .ver { margin-top: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 3px; background: var(--grp); }
+  .ver:first-child { margin-top: 0; }
+  .vhead { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
+  .vhead .w-mc { width: 92px; } .vhead .w-java { width: 56px; } .vhead .w-bound { width: 92px; }
+  .vhead .sp { flex: 1; }
+  .act { display: inline-flex; gap: 6px; align-items: center; height: 28px; cursor: pointer; }
+  .lrow { display: grid; grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1.3fr); gap: 8px; margin-top: 8px; align-items: center; }
+  .lrow.off input[type=text] { opacity: .5; }
+  .lrow label { display: flex; gap: 8px; align-items: center; }
+  .vfoot { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .vstat { flex: 1; min-height: 18px; color: var(--dim); font-size: 12.5px; }
+  .vstat.bad { color: #a8650a; }
+  .lic { margin-top: 16px; } .lic .g2 { margin-top: 10px; } .lic.off .g2, .lic.off .lstat { display: none; }
+  .lstat { margin-top: 8px; min-height: 20px; color: var(--dim); font-size: 12.5px; }
+  .lstat button { margin-left: 6px; }
+  .opt .note { display: block; margin: 4px 0 0 27px; color: var(--dim); font-size: 12.5px; }
+  .add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .add input { width: 104px; } .add select { width: 150px; }
+  .dep { display: grid; grid-template-columns: 128px minmax(0, 1fr) minmax(0, 1fr) 34px; gap: 8px; margin-top: 8px; }
+  .dep:first-child { margin-top: 0; }
+  .mm { margin: 8px 0 0 27px; padding: 14px; border: 1px solid var(--line); border-radius: 3px; background: var(--grp); }
+  .mm[hidden] { display: none; }
+  .opt.off > label { opacity: .55; }
+  .mm .g2 { margin-bottom: 4px; }
+  .mm .sub2 { margin: 14px 0 6px; font-size: 12.5px; font-weight: 500; color: var(--dim); }
+  .mmlink { display: grid; grid-template-columns: 150px minmax(0, 1fr) 34px; gap: 8px; margin-top: 8px; }
+  .mmlink:first-of-type { margin-top: 0; }
+  .mmlink button { padding: 0; }
+  @media (max-width: 700px) { .mmlink { grid-template-columns: 1fr 34px; } .mmlink select, .mmlink input { grid-column: 1; } .mmlink button { grid-column: 2; grid-row: 1; } }
+  .dep button { padding: 0; }
+  @media (max-width: 700px) { .dep { grid-template-columns: 1fr 34px; } .dep select, .dep input { grid-column: 1; } .dep button { grid-column: 2; grid-row: 1; } }
+  input[type=color] { width: 30px; height: 24px; padding: 0; border: 1px solid var(--line); background: none; vertical-align: middle; }
+  input[type=file] { font-size: 12.5px; }
+
+  .item { display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; background: #100010; border: 2px solid #35127a; box-shadow: 0 0 0 2px #100010; margin: 2px; color: #fff; }
+  .slot { flex: none; line-height: 0; background: #8b8b8b; border: 2px solid; border-color: #373737 #fff #fff #373737; }
+  #icon { width: 64px; height: 64px; image-rendering: pixelated; }
+  #mcName { font: 600 19px/1.25 var(--pix); overflow-wrap: anywhere; }
+  #mcVer { color: #a8a8a8; }
+  #mcBy { color: #8a8aff; font-style: italic; }
+  #mcDesc { margin: 6px 0 0; color: #d4d4d4; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .head .sp { flex: 1; }
+  #count, #note { color: var(--ddim); font-size: 12.5px; }
+  .msgs { margin: 0; padding: 0; list-style: none; }
+  .msgs li { margin-top: 5px; padding-left: 10px; border-left: 3px solid #d6453d; }
+  .msgs .w { border-color: #e0a030; } .msgs b { font-weight: 650; }
+  .files { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(130px, 36%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); border: 1px solid var(--dline); background: #141518; }
+  .files.empty { grid-template-columns: 1fr; } .files.empty .view { display: none; }
+  .tree { overflow: auto; min-height: 0; border-right: 1px solid var(--dline); padding: 8px 4px; font-size: 12.5px; }
+  .files.empty .tree { border: 0; }
+  .tree:empty::before { content: "Type a name on the left and the new project's files show up here."; display: block; padding: 10px 12px; color: var(--ddim); font-size: 13.5px; }
+  .tree details > div { margin-left: 14px; }
+  .tree summary { cursor: pointer; padding: 1px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ddim); }
+  .tree .f { display: block; width: 100%; height: auto; border: 0; border-radius: 0; background: none; color: var(--dfg); padding: 1px 4px 1px 18px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  aside .tree .f { background: none; }
+  .tree .f:hover { background: var(--dark2); }
+  aside .tree .f[aria-current] { background: #2f3a2a; box-shadow: inset 3px 0 0 var(--green); }
+  .view { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+  .view .vh { padding: 5px 10px; border-bottom: 1px solid var(--dline); color: var(--ddim); display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 38px; }
+  .view .vh span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  pre { margin: 0; padding: 10px 12px; overflow: auto; flex: 1; min-height: 0; tab-size: 4; }
+  pre img { display: block; margin-top: 8px; width: 48px; height: 48px; image-rendering: pixelated; }
+  @media (max-width: 700px) { .files { grid-template-columns: 1fr; height: auto; } .tree { max-height: 200px; border-right: 0; border-bottom: 1px solid var(--dline); } pre { max-height: 360px; } }
+  #fatal { padding: 40px 24px; max-width: 720px; margin: 0 auto; }
+</style>
+</head>
+<body>
+<div id="fatal" hidden></div>
+<div class="page" id="app" hidden>
+<form id="form" autocomplete="off" novalidate>
+  <div class="brand"><svg class="logo" viewBox="0 0 10 10" width="30" height="30" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="0" width="1" height="1" fill="#6bb23c"/><rect x="1" y="0" width="1" height="1" fill="#5a9b32"/><rect x="2" y="0" width="1" height="1" fill="#6bb23c"/><rect x="3" y="0" width="1" height="1" fill="#4d8a2b"/><rect x="4" y="0" width="1" height="1" fill="#5a9b32"/><rect x="5" y="0" width="1" height="1" fill="#5a9b32"/><rect x="6" y="0" width="1" height="1" fill="#4d8a2b"/><rect x="7" y="0" width="1" height="1" fill="#5a9b32"/><rect x="8" y="0" width="1" height="1" fill="#6bb23c"/><rect x="9" y="0" width="1" height="1" fill="#4d8a2b"/><rect x="0" y="1" width="1" height="1" fill="#5a9b32"/><rect x="1" y="1" width="1" height="1" fill="#4d8a2b"/><rect x="2" y="1" width="1" height="1" fill="#5a9b32"/><rect x="3" y="1" width="1" height="1" fill="#5a9b32"/><rect x="4" y="1" width="1" height="1" fill="#5a9b32"/><rect x="5" y="1" width="1" height="1" fill="#6bb23c"/><rect x="6" y="1" width="1" height="1" fill="#6bb23c"/><rect x="7" y="1" width="1" height="1" fill="#5a9b32"/><rect x="8" y="1" width="1" height="1" fill="#5a9b32"/><rect x="9" y="1" width="1" height="1" fill="#5a9b32"/><rect x="0" y="2" width="1" height="1" fill="#4d8a2b"/><rect x="1" y="2" width="1" height="1" fill="#6bb23c"/><rect x="2" y="2" width="1" height="1" fill="#8a6342"/><rect x="3" y="2" width="1" height="1" fill="#8a6342"/><rect x="4" y="2" width="1" height="1" fill="#5a9b32"/><rect x="5" y="2" width="1" height="1" fill="#5a9b32"/><rect x="6" y="2" width="1" height="1" fill="#8a6342"/><rect x="7" y="2" width="1" height="1" fill="#5a9b32"/><rect x="8" y="2" width="1" height="1" fill="#4d8a2b"/><rect x="9" y="2" width="1" height="1" fill="#8a6342"/><rect x="0" y="3" width="1" height="1" fill="#8a6342"/><rect x="1" y="3" width="1" height="1" fill="#8a6342"/><rect x="2" y="3" width="1" height="1" fill="#7a5638"/><rect x="3" y="3" width="1" height="1" fill="#8a6342"/><rect x="4" y="3" width="1" height="1" fill="#8a6342"/><rect x="5" y="3" width="1" height="1" fill="#7a5638"/><rect x="6" y="3" width="1" height="1" fill="#9a7150"/><rect x="7" y="3" width="1" height="1" fill="#8a6342"/><rect x="8" y="3" width="1" height="1" fill="#7a5638"/><rect x="9" y="3" width="1" height="1" fill="#8a6342"/><rect x="0" y="4" width="1" height="1" fill="#8a6342"/><rect x="1" y="4" width="1" height="1" fill="#8a6342"/><rect x="2" y="4" width="1" height="1" fill="#9a7150"/><rect x="3" y="4" width="1" height="1" fill="#8a6342"/><rect x="4" y="4" width="1" height="1" fill="#7a5638"/><rect x="5" y="4" width="1" height="1" fill="#8a6342"/><rect x="6" y="4" width="1" height="1" fill="#8a6342"/><rect x="7" y="4" width="1" height="1" fill="#8a6342"/><rect x="8" y="4" width="1" height="1" fill="#7a5638"/><rect x="9" y="4" width="1" height="1" fill="#9a7150"/><rect x="0" y="5" width="1" height="1" fill="#8a6342"/><rect x="1" y="5" width="1" height="1" fill="#8a6342"/><rect x="2" y="5" width="1" height="1" fill="#8a6342"/><rect x="3" y="5" width="1" height="1" fill="#8a6342"/><rect x="4" y="5" width="1" height="1" fill="#8a6342"/><rect x="5" y="5" width="1" height="1" fill="#8a6342"/><rect x="6" y="5" width="1" height="1" fill="#7a5638"/><rect x="7" y="5" width="1" height="1" fill="#8a6342"/><rect x="8" y="5" width="1" height="1" fill="#8a6342"/><rect x="9" y="5" width="1" height="1" fill="#8a6342"/><rect x="0" y="6" width="1" height="1" fill="#9a7150"/><rect x="1" y="6" width="1" height="1" fill="#8a6342"/><rect x="2" y="6" width="1" height="1" fill="#8a6342"/><rect x="3" y="6" width="1" height="1" fill="#8a6342"/><rect x="4" y="6" width="1" height="1" fill="#9a7150"/><rect x="5" y="6" width="1" height="1" fill="#9a7150"/><rect x="6" y="6" width="1" height="1" fill="#7a5638"/><rect x="7" y="6" width="1" height="1" fill="#7a5638"/><rect x="8" y="6" width="1" height="1" fill="#7a5638"/><rect x="9" y="6" width="1" height="1" fill="#8a6342"/><rect x="0" y="7" width="1" height="1" fill="#8a6342"/><rect x="1" y="7" width="1" height="1" fill="#9a7150"/><rect x="2" y="7" width="1" height="1" fill="#8a6342"/><rect x="3" y="7" width="1" height="1" fill="#8a6342"/><rect x="4" y="7" width="1" height="1" fill="#9a7150"/><rect x="5" y="7" width="1" height="1" fill="#8a6342"/><rect x="6" y="7" width="1" height="1" fill="#9a7150"/><rect x="7" y="7" width="1" height="1" fill="#8a6342"/><rect x="8" y="7" width="1" height="1" fill="#8a6342"/><rect x="9" y="7" width="1" height="1" fill="#8a6342"/><rect x="0" y="8" width="1" height="1" fill="#8a6342"/><rect x="1" y="8" width="1" height="1" fill="#8a6342"/><rect x="2" y="8" width="1" height="1" fill="#7a5638"/><rect x="3" y="8" width="1" height="1" fill="#9a7150"/><rect x="4" y="8" width="1" height="1" fill="#7a5638"/><rect x="5" y="8" width="1" height="1" fill="#8a6342"/><rect x="6" y="8" width="1" height="1" fill="#8a6342"/><rect x="7" y="8" width="1" height="1" fill="#8a6342"/><rect x="8" y="8" width="1" height="1" fill="#8a6342"/><rect x="9" y="8" width="1" height="1" fill="#8a6342"/><rect x="0" y="9" width="1" height="1" fill="#8a6342"/><rect x="1" y="9" width="1" height="1" fill="#9a7150"/><rect x="2" y="9" width="1" height="1" fill="#9a7150"/><rect x="3" y="9" width="1" height="1" fill="#9a7150"/><rect x="4" y="9" width="1" height="1" fill="#8a6342"/><rect x="5" y="9" width="1" height="1" fill="#8a6342"/><rect x="6" y="9" width="1" height="1" fill="#8a6342"/><rect x="7" y="9" width="1" height="1" fill="#8a6342"/><rect x="8" y="9" width="1" height="1" fill="#8a6342"/><rect x="9" y="9" width="1" height="1" fill="#8a6342"/></svg><b>Mod generator</b><span id="src"></span></div>
+  <div id="name-wrap"><input type="text" id="f-name" data-bind="name" placeholder="Mod name" aria-label="Mod name" autofocus></div>
+  <p id="derived"></p>
+
+  <section class="sec"><div class="rail"><h2>Names</h2></div>
+    <div>
+      <div class="g2">
+      <div class="fld"><label for="f-id">Mod id</label><input type="text" class="m" id="f-id" data-bind="modId" spellcheck="false"></div>
+      <div class="fld"><label for="f-group">Group</label><input type="text" class="m" id="f-group" data-bind="group" spellcheck="false"></div>
+      <div class="fld"><label for="f-cls">Main class prefix</label><input type="text" class="m" id="f-cls" data-bind="cls" spellcheck="false"></div>
+      <div class="fld"><label for="f-project">Folder name</label><input type="text" class="m" id="f-project" data-bind="project" spellcheck="false"></div>
+      </div>
+    </div></section>
+  <section class="sec"><div class="rail"><h2>Details</h2></div>
+    <div>
+      <div class="fld"><label for="f-desc">Description</label><input type="text" id="f-desc" data-bind="description" placeholder="Leave empty to use name"></div>
+      <div class="g2">
+      <div class="fld"><label for="f-authors">Authors</label><input type="text" id="f-authors" data-bind="authorsText" placeholder="Separate with commas"></div>
+      <div class="fld"><label for="f-license">License</label><input type="text" class="m" id="f-license" data-bind="license" list="licenses" spellcheck="false"><datalist id="licenses"></datalist></div>
+      <div class="fld"><label for="f-version">Version</label><input type="text" class="m" id="f-version" data-bind="version" spellcheck="false"></div>
+      <div class="fld"><label for="f-env">Runs on</label><select id="f-env" data-bind="environment"><option value="BOTH">Client and server</option><option value="CLIENT">Client only</option><option value="SERVER">Server only</option></select></div>
+      </div>
+      <div class="lic" id="licBox">
+        <div class="opt"><label><input type="checkbox" data-bind="licenseFile">Write a LICENSE file</label></div>
+        <div class="g2" id="licFields">
+          <div class="fld"><label for="f-year">Copyright year</label><input type="text" class="m" id="f-year" data-bind="year" spellcheck="false"></div>
+          <div class="fld"><label for="f-holder">Copyright holder</label><input type="text" id="f-holder" data-bind="copyright" placeholder="Same as the authors" spellcheck="false"></div>
+        </div>
+        <div class="lstat" id="licStatus" role="status"><span id="licText"></span> <button type="button" class="sm" id="licRetry" hidden>Try again</button></div>
+      </div>
+    </div></section>
+  <section class="sec"><div class="rail"><h2>Versions</h2></div>
+    <div>
+      <div id="versions"></div>
+      <div class="add">
+        <input type="text" class="m" id="addMc" placeholder="1.20.1" aria-label="Minecraft version to add" spellcheck="false">
+        <button type="button" data-act="add-version">Add version</button>
+        <button type="button" data-act="fetch-all">Look up latest for all</button>
+      </div>
+    </div></section>
+  <section class="sec"><div class="rail"><h2>Include</h2></div>
+    <div>
+      <div class="opt" id="mixinOpt"><label><input type="checkbox" data-bind="mixins.on">Mixins</label></div>
+      <div id="mixinFiles"></div>
+      <div class="opt" id="meOpt"><label><input type="checkbox" data-bind="mixinExtras.on">MixinExtras</label></div>
+      <div class="opt" id="ctOpt"><label><input type="checkbox" data-bind="classTweaker">Class tweaker</label></div>
+      <div class="opt" id="vanillaOpt"><label><input type="checkbox" data-bind="vanillaRelocations">Vanilla resource relocations</label></div>
+      <div class="opt"><label><input type="checkbox" data-bind="logger">Logger in the main class</label><span class="note" id="loggerNote"></span></div>
+      <div class="opt"><label><input type="checkbox" data-bind="useFabricApi">Depend on Fabric API</label></div>
+      <div class="opt"><label><input type="checkbox" data-bind="quilt">Also ship quilt.mod.json in the Fabric jar</label></div>
+      <div class="opt" id="mmOpt"><label><input type="checkbox" data-bind="modMenu.on">Mod Menu integration (Fabric)</label></div>
+      <div class="mm" id="mmBox" hidden>
+        <div class="g2">
+          <div class="fld"><label for="f-mmupd">Update checker</label><select id="f-mmupd" data-bind="modMenu.updateChecker"><option value="auto">Automatic</option><option value="on">Always on</option><option value="off">Never</option></select></div>
+          <div class="fld"><label for="f-mmparent"><span class="hint" tabindex="0" data-tip="Optional. Shows your mod under another mod in the list, for mods that come in several parts. Use the id of that mod.">Parent mod id</span></label><input type="text" class="m" id="f-mmparent" data-bind="modMenu.parent" spellcheck="false"></div>
+        </div>
+        <div class="opt"><label><input type="checkbox" data-bind="modMenu.library">Library badge</label></div>
+        <div class="opt"><label><input type="checkbox" data-bind="modMenu.deprecated">Deprecated badge</label></div>
+        <div class="opt"><label><input type="checkbox" data-bind="modMenu.autoLinks">Link the pages I publish to</label></div>
+        <div class="opt"><label><input type="checkbox" data-bind="modMenu.optionalDependency">List Mod Menu as optional dependency</label></div>
+        <div class="opt"><label><input type="checkbox" data-bind="modMenu.runInDevelopment">Include Mod Menu in the development client</label></div>
+        <div class="sub2">More links</div>
+        <div id="mmLinks"></div>
+        <div class="add"><button type="button" data-act="add-mmlink">Add a link</button></div>
+      </div>
+      <div class="opt" id="ujOpt"><label><input type="checkbox" data-bind="updateJson.on">Update notices for Forge and NeoForge (update.json)</label></div>
+      <div class="mm" id="ujBox" hidden>
+        <div class="g2">
+          <div class="fld"><label for="f-ujbranch">Branch</label><input type="text" class="m" id="f-ujbranch" data-bind="updateJson.branch" spellcheck="false"></div>
+          <div class="fld"><label for="f-ujpath">File</label><input type="text" class="m" id="f-ujpath" data-bind="updateJson.path" spellcheck="false"></div>
+        </div>
+        <div class="fld"><label for="f-ujurl">Address of the file</label><input type="text" class="m" id="f-ujurl" data-bind="updateJson.url" placeholder="Set automatically" spellcheck="false"></div>
+      </div>
+      <div class="opt" id="dsOpt"><label><input type="checkbox" data-bind="descriptionSync">Sync README with Modrinth</label></div>
+      <div class="opt" id="psOpt"><label><input type="checkbox" data-bind="platform">Platform services (loader specific code behind an interface)</label></div>
+      <div class="opt" id="fmtOpt"><label><input type="checkbox" data-bind="formatting">Formatting check (Spotless)</label></div>
+      <div class="opt" id="ciOpt"><label><input type="checkbox" data-bind="ci">Build workflow on GitHub (CI)</label></div>
+      <div class="opt" id="dgOpt"><label><input type="checkbox" data-bind="datagen.on">Data generation</label></div>
+      <div class="mm" id="dgBox" hidden>
+        <div class="opt"><label><input type="checkbox" data-bind="datagen.client">Run the client-side generators too</label></div>
+      </div>
+    </div></section>
+  <section class="sec"><div class="rail"><h2>Publishing</h2></div>
+    <div>
+      <div class="g2">
+      <div class="fld"><label for="f-home">Homepage</label><input type="text" class="m" id="f-home" data-bind="homepage" spellcheck="false"></div>
+      <div class="fld"><label for="f-gh">GitHub repo</label><input type="text" class="m" id="f-gh" data-bind="github" placeholder="owner/repo" spellcheck="false"></div>
+      <div class="fld"><label for="f-mr">Modrinth</label><input type="text" class="m" id="f-mr" data-bind="publishing.modrinth" placeholder="Project id or slug" spellcheck="false"></div>
+      <div class="fld"><label for="f-cf">CurseForge</label><input type="text" class="m" id="f-cf" data-bind="publishing.curseforge" placeholder="Numeric project id" spellcheck="false"></div>
+      </div>
+      <div style="margin-top:14px"></div>
+      <div class="opt"><label><input type="checkbox" data-bind="publishing.github">Publish to GitHub releases</label></div>
+    </div></section>
+  <section class="sec"><div class="rail"><h2>Dependencies</h2></div>
+    <div>
+      <div id="deps"></div>
+      <div class="add"><button type="button" data-act="add-dep">Add a dependency</button></div>
+    </div></section>
+  <section class="sec"><div class="rail"><h2>Icon</h2></div>
+    <div>
+      <div class="opt"><label><input type="radio" name="iconMode" value="generate" data-bind="iconMode"><span>Initials on a colour <input type="color" data-bind="iconColor" aria-label="Colour"></span></label></div>
+      <div class="opt"><label><input type="radio" name="iconMode" value="upload" data-bind="iconMode"><span>Your own image, scaled to 128 by 128 <input type="file" id="iconFile" accept="image/*"></span></label></div>
+      <div class="opt"><label><input type="radio" name="iconMode" value="keep" data-bind="iconMode"><span>Keep the example's icon</span></label></div>
+    </div></section>
+</form>
+
+<aside>
+  <div class="item">
+    <div class="slot"><canvas id="icon" width="128" height="128"></canvas></div>
+    <div><div id="mcName"></div><div id="mcVer"></div><div id="mcBy"></div><p id="mcDesc"></p></div>
+  </div>
+  <div class="head">
+    <button type="button" class="go" id="download" disabled>Download zip</button>
+    <button type="button" id="writeDir" hidden>Save to folder</button>
+    <span class="sp"></span><span id="count"></span>
+  </div>
+  <ul class="msgs" id="msgs"></ul>
+  <div id="note"></div>
+  <div class="files">
+    <nav class="tree" id="tree" aria-label="Files in the new project"></nav>
+    <div class="view"><div class="vh"><span id="vpath">&nbsp;</span><button type="button" class="sm" id="copy" hidden>Copy</button></div><pre id="vtext"></pre></div>
+  </div>
+</aside>
+</div>
+
+<script src="gen.js"></script>
+<script src="dist/data.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fatal = (html) => { const f = $('#fatal'); f.hidden = false; f.innerHTML = html; };
+
+  if (!window.REPO_DATA) {
+    fatal('<p>The template data hasn\'t been built yet. Run this from the repo root, then reload the page:</p><pre>node generator/build.mjs</pre>');
+    return;
+  }
+  const DATA = window.REPO_DATA;
+  let seed;
+  try { seed = Gen.analyze(DATA); } catch (e) { fatal('<p>The repo has changed in a way the generator doesn\'t understand yet:</p><pre>' + esc(e.message) + '</pre>'); return; }
+  $('#app').hidden = false;
+  $('#src').textContent = 'from ' + seed.name + ', ' + DATA.files.length + ' files';
+  const licenseOptions = (list) => $('#licenses').innerHTML = list.map((l) => '<option value="' + esc(l.id) + '">' + esc(l.name || '') + '</option>').join('');
+  licenseOptions([...new Set([seed.license, ...Gen.LICENSES])].map((id) => ({ id })));
+
+  const state = Object.assign(Gen.defaultConfig(seed), {
+    authorsText: seed.authors.join(', '),
+    touched: { modId: false, cls: false, project: false, github: false },
+    iconMode: 'generate', iconColor: '#3d6b52', iconBytes: null, bitmap: null,
+  });
+  state.versions.forEach((v) => { v.javaTouched = true; v.status = ''; v.bad = false; });
+
+  const getPath = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
+  const setPath = (o, p, v) => { const ks = p.split('.'), last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; };
+
+  let licenseList = null, licenseInfo = { state: 'idle' }, licenseTimer = 0, licenseSeq = 0;
+  const licenseCache = new Map();
+  const licenseWanted = () => { const id = state.license.trim(); return state.licenseFile && id && id.toLowerCase() !== Gen.ALL_RIGHTS_RESERVED.toLowerCase() && Gen.isSingleLicense(id) ? id : ''; };
+
+  async function lookupLicense() {
+    const want = licenseWanted(), mine = ++licenseSeq;
+    if (!want) { licenseInfo = { state: 'idle' }; schedule(); return; }
+    const id = (licenseList && Gen.resolveLicenseId(want, licenseList)) || want;
+    if (licenseCache.has(id)) { licenseInfo = licenseCache.get(id); schedule(); return; }
+    licenseInfo = { state: 'loading', id }; schedule();
+    let info;
+    try { info = Object.assign({ state: 'ok' }, await Gen.fetchLicense(id)); licenseCache.set(id, info); }
+    catch (e) { info = { state: 'error', id, msg: e && e.message ? e.message : String(e) }; }
+    if (mine === licenseSeq) { licenseInfo = info; schedule(); }
+  }
+  function lookupLicenseSoon() { clearTimeout(licenseTimer); licenseTimer = setTimeout(lookupLicense, 350); licenseInfo = licenseWanted() ? { state: 'loading', id: state.license.trim() } : { state: 'idle' }; }
+
+  Gen.fetchLicenseList().then((r) => {
+    licenseList = r.licenses;
+    const byId = new Map(r.licenses.map((l) => [l.id, l]));
+    const first = [...new Set([seed.license, ...Gen.LICENSES])].map((id) => byId.get(id) || { id });
+    const rest = r.licenses.filter((l) => !l.deprecated && !first.some((f) => f.id === l.id)).sort((a, b) => (a.id < b.id ? -1 : 1));
+    licenseOptions(first.concat(rest));
+    lookupLicense();
+  }).catch(() => { lookupLicense(); });
+
+  const CONFIG_KEYS = Object.keys(Gen.defaultConfig(seed));
+  function toConfig() {
+    const picked = {}; CONFIG_KEYS.forEach((k) => { picked[k] = state[k]; });
+    return Object.assign(picked, {
+      authors: state.authorsText.split(',').map((s) => s.trim()).filter(Boolean),
+      name: state.name.trim(), version: state.version.trim(), description: state.description.trim(),
+      homepage: state.homepage.trim(), github: state.github.trim(), license: state.license.trim(),
+      icon: state.iconMode === 'keep' ? null : state.iconBytes,
+      year: state.year.trim(), copyright: state.copyright.trim(),
+      modMenu: Object.assign({}, state.modMenu, { parent: state.modMenu.parent.trim(), links: state.modMenu.links.map((l) => ({ type: l.type, url: l.url.trim() })) }),
+      updateJson: Object.assign({}, state.updateJson, { branch: state.updateJson.branch.trim(), path: state.updateJson.path.trim(), url: state.updateJson.url.trim() }),
+      licenseText: licenseInfo.state === 'ok' && licenseWanted() ? licenseInfo.text : null,
+      publishing: { modrinth: state.publishing.modrinth.trim(), curseforge: state.publishing.curseforge.trim(), github: state.publishing.github },
+    });
+  }
+
+  function syncInputs() {
+    document.querySelectorAll('[data-bind]').forEach((el) => {
+      if (el === document.activeElement) return;
+      const v = el.dataset.file ? state.mixins.files[el.dataset.file] : getPath(state, el.dataset.bind);
+      if (el.type === 'checkbox') el.checked = !!v;
+      else if (el.type === 'radio') el.checked = v === el.value;
+      else if (v !== undefined && el.value !== String(v)) el.value = v;
+    });
+  }
+
+  let mcList = null;
+  const mcOptions = (cur, blank) => {
+    const list = mcList.slice(); if (cur && !list.includes(cur)) list.unshift(cur);
+    return (blank ? '<option value="">none</option>' : '') + list.map((m) => '<option' + (m === cur ? ' selected' : '') + '>' + esc(m) + '</option>').join('');
+  };
+  function renderAddMc() {
+    if (!mcList) return;
+    let sel = $('#addMc');
+    if (sel.tagName !== 'SELECT') { const n = document.createElement('select'); n.id = 'addMc'; n.className = 'm'; n.setAttribute('aria-label', sel.getAttribute('aria-label')); sel.replaceWith(n); sel = n; }
+    const have = new Set(state.versions.map((v) => v.mc));
+    sel.innerHTML = '<option value="">Minecraft version...</option>' + mcList.filter((m) => !have.has(m)).map((m) => '<option>' + esc(m) + '</option>').join('');
+  }
+  Gen.fetchMcVersions().then((r) => { mcList = r.releases; renderVersions(); schedule(); }).catch(() => {});
+
+  const H = (t, x) => '<span class="hint" tabindex="0" data-tip="' + esc(t) + '">' + x + '</span>';
+  function renderVersions() {
+    $('#versions').innerHTML = state.versions.map((v, i) => {
+      const rows = Gen.LOADERS.filter((l) => seed.loaders.includes(l.id)).map((l) => `
+        <div class="lrow ${v[l.id].on ? '' : 'off'}">
+          <label><input type="checkbox" data-bind="versions.${i}.${l.id}.on">${l.name}</label>
+          <input type="text" class="m" data-bind="versions.${i}.${l.id}.ver" spellcheck="false" aria-label="${l.name} version">
+          ${l.id === 'fabric' ? `<input type="text" class="m" data-bind="versions.${i}.fabricApi" placeholder="Fabric API version" spellcheck="false" aria-label="Fabric API version">` : '<span></span>'}
+        </div>${l.id === 'fabric' && seed.hasModMenu ? `
+        <div class="lrow mmrow" ${state.modMenu.on && v.fabric.on ? '' : 'hidden'}>
+          <span class="dim">Mod Menu</span>
+          <input type="text" class="m" data-bind="versions.${i}.modMenu" placeholder="Mod Menu version" spellcheck="false" aria-label="Mod Menu version">
+          <span></span>
+        </div>` : ''}`).join('');
+      return `<div class="ver" data-i="${i}">
+        <div class="vhead">
+          <label class="fld"><span>Minecraft</span>${mcList ? `<select class="m w-mc" data-bind="versions.${i}.mc">${mcOptions(v.mc)}</select>` : '<input type="text" class="m w-mc" data-bind="versions.' + i + '.mc" spellcheck="false">'}</label>
+          <label class="fld"><span>Java</span><input type="text" class="m w-java" data-bind="versions.${i}.java"></label>
+          <label class="fld"><span>${H('another version this mod works on. this will create a version range', 'Also works on')}</span>${mcList ? `<select class="m w-bound" data-bind="versions.${i}.bound">${mcOptions(v.bound, true)}</select>` : '<input type="text" class="m w-bound" data-bind="versions.' + i + '.bound" placeholder="1.21" spellcheck="false">'}</label>
+          <span class="sp"></span>
+          <label class="act"><input type="radio" name="vcs" value="${esc(v.mc)}" data-vcs ${v.mc === state.vcs ? 'checked' : ''}>${H('The version your IDE and everyday builds use. You can switch it later with Stonecutter.', 'Active')}</label>
+        </div>${rows}
+        <div class="vfoot"><div class="vstat ${v.bad ? 'bad' : ''}" role="status">${esc(v.status)}</div>
+          <button type="button" class="sm" data-act="fetch">Look up latest</button>
+          <button type="button" class="sm" data-act="remove-version" aria-label="Remove ${esc(v.mc)}">Remove</button></div></div>`;
+    }).join('') || '<p class="dim">No versions yet. Add one below.</p>';
+    renderAddMc();
+    syncInputs();
+  }
+
+  function renderDeps() {
+    $('#deps').innerHTML = state.dependencies.map((d, i) => `
+      <div class="dep" data-i="${i}">
+        <select data-bind="dependencies.${i}.type" aria-label="Type">${Gen.DEP_TYPES.map((t) => `<option ${t === d.type ? 'selected' : ''}>${t}</option>`).join('')}</select>
+        <input type="text" class="m" data-bind="dependencies.${i}.modId" placeholder="Mod id" spellcheck="false" aria-label="Mod id">
+        <input type="text" class="m" data-bind="dependencies.${i}.range" placeholder="Version range" title="Maven range: [1.0,2.0) means 1.0 up to but not including 2.0. Use * for any version." spellcheck="false" aria-label="Version range">
+        <button type="button" data-act="remove-dep" aria-label="Remove this dependency">×</button>
+      </div>`).join('') || '<p class="dim">None</p>';
+    syncInputs();
+  }
+
+  const mmTypeOptions = (cur) => { const list = Gen.MODMENU_LINKS.slice(); if (cur && !list.includes(cur)) list.unshift(cur);
+    return list.map((t) => '<option' + (t === cur ? ' selected' : '') + '>' + esc(t) + '</option>').join(''); };
+  function renderMm() {
+    const box = $('#mmBox'); box.hidden = !(seed.hasModMenu && state.modMenu.on);
+    $('#mmLinks').innerHTML = state.modMenu.links.map((l, i) => `
+      <div class="mmlink" data-i="${i}">
+        <select data-bind="modMenu.links.${i}.type" aria-label="Link type">${mmTypeOptions(l.type)}</select>
+        <input type="text" class="m" data-bind="modMenu.links.${i}.url" placeholder="https://..." spellcheck="false" aria-label="Link address">
+        <button type="button" data-act="remove-mmlink" aria-label="Remove this link">×</button>
+      </div>`).join('') || '<p class="dim" style="margin:0">None</p>';
+    document.querySelectorAll('.mmrow').forEach((r) => { r.hidden = !(seed.hasModMenu && state.modMenu.on) || !state.versions[+r.closest('.ver').dataset.i].fabric.on; });
+    syncInputs();
+  }
+
+  function renderExtras() {
+    const has = (ids) => state.versions.some((v) => ids.some((id) => seed.loaders.includes(id) && v[id] && v[id].on));
+    $('#ujOpt').hidden = !seed.hasUpdateJson; $('#dgOpt').hidden = !seed.hasDatagen;
+    $('#dsOpt').hidden = !seed.hasDescriptionSync; $('#psOpt').hidden = !seed.hasPlatform; $('#meOpt').hidden = !seed.hasMixinExtras; $('#fmtOpt').hidden = !seed.hasFormatting; $('#ciOpt').hidden = !seed.hasCi;
+    $('#meOpt').classList.toggle('off', !state.mixins.on);
+    $('#ujBox').hidden = !(seed.hasUpdateJson && state.updateJson.on && has(['forge', 'neoforge']));
+    $('#dgBox').hidden = !(seed.hasDatagen && state.datagen.on && has(['fabric']));
+    $('#ujOpt').classList.toggle('off', !has(['forge', 'neoforge']));
+    $('#dgOpt').classList.toggle('off', !has(['fabric']));
+  }
+
+  function renderCodeOptions() {
+    $('#mmOpt').hidden = !seed.hasModMenu;
+    $('#mixinOpt').hidden = !seed.hasMixins;
+    $('#mixinFiles').innerHTML = seed.hasMixins ? seed.mixinFiles.map((p) => `
+      <label class="opt sub"><input type="checkbox" data-bind="mixins.files.${p.replace(/\./g, '․')}" data-file="${esc(p)}"><span class="m">${esc(p.replace(/^.*\//, '').replace(/\.java$/, ''))}</span></label>`).join('') : '';
+    $('#ctOpt').hidden = !seed.hasClassTweaker;
+    $('#vanillaOpt').hidden = !seed.hasVanilla;
+  }
+
+  function bindValue(el) {
+    if (el.dataset.file) return [state.mixins.files, el.dataset.file];
+    const ks = el.dataset.bind.split('.'), last = ks.pop();
+    return [ks.reduce((a, k) => a[k], state), last];
+  }
+
+  const mix = (a, b, t) => { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const A = p(a), B = p(b);
+    return '#' + A.map((x, i) => Math.round(x + (B[i] - x) * t).toString(16).padStart(2, '0')).join(''); };
+  function initials(name) {
+    const w = name.normalize('NFKD').replace(/[^A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+    return w.length ? (w.length === 1 ? w[0].slice(0, 2) : w[0][0] + w[1][0]).toUpperCase() : '?';
+  }
+  let iconTimer = 0;
+  function refreshIcon() {
+    clearTimeout(iconTimer);
+    iconTimer = setTimeout(() => {
+      const cv = $('#icon'), c = cv.getContext('2d'), s = 128;
+      cv.width = cv.height = s; c.clearRect(0, 0, s, s);
+      if (state.iconMode === 'generate') {
+        c.fillStyle = state.iconColor; c.fillRect(0, 0, s, s);
+        c.fillStyle = mix(state.iconColor, '#000000', 0.25); c.fillRect(0, s - 12, s, 12);
+        c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '700 56px ui-monospace, Menlo, Consolas, monospace';
+        c.fillText(initials(state.name), s / 2, s / 2 - 5);
+      } else if (state.iconMode === 'upload' && state.bitmap) {
+        const k = Math.max(s / state.bitmap.width, s / state.bitmap.height), w = state.bitmap.width * k, h = state.bitmap.height * k;
+        c.drawImage(state.bitmap, (s - w) / 2, (s - h) / 2, w, h);
+      }
+      if (state.iconMode === 'keep') { state.iconBytes = null; schedule(); return; }
+      cv.toBlob((b) => b && b.arrayBuffer().then((buf) => { state.iconBytes = new Uint8Array(buf); schedule(); }), 'image/png');
+    }, 50);
+  }
+  $('#iconFile').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try { state.bitmap = await createImageBitmap(f); state.iconMode = 'upload'; syncInputs(); refreshIcon(); }
+    catch (err) { alert('That file couldn\'t be read as an image.'); }
+  });
+
+  let output = { files: [], errors: [], warnings: [] }, selected = 'build.gradle.kts';
+  const openDirs = new Set(['src', 'gradle', 'gradle/minecraft']);
+  const size = (n) => (n < 1024 ? n + ' B' : (n / 1024).toFixed(n < 10240 ? 1 : 0) + ' KB');
+
+  function recompute() {
+    const cfg = toConfig();
+    if (!cfg.name) output = { files: [], errors: [], warnings: [], empty: true };
+    else { try { output = Gen.generate(cfg, DATA, seed); } catch (e) { output = { files: [], errors: [{ field: '', msg: e.message }], warnings: [] }; } }
+    renderMessages(cfg); renderLoggerNote(); markInvalid(); renderTree(); renderView();
+    $('#derived').textContent = cfg.name ? cfg.group + '.' + cfg.modId + ' (' + cfg.cls + 'Fabric, ' + cfg.cls + 'Forge, ...)' : '';
+    $('#mcName').textContent = cfg.name || 'Your mod'; $('#mcVer').textContent = cfg.name ? 'Version ' + cfg.version : '';
+    $('#mcBy').textContent = cfg.authors.length ? 'by ' + cfg.authors.join(', ') : '';
+    $('#mcDesc').textContent = cfg.description || cfg.name || 'Your description shows up here.';
+    document.querySelector('.files').classList.toggle('empty', !output.files.length);
+    syncInputs();
+  }
+
+  function renderMessages(cfg) {
+    const items = [];
+    output.errors.forEach((e) => items.push('<li class="e"><b>Problem:</b> ' + esc(e.msg) + '</li>'));
+    output.warnings.forEach((w) => items.push('<li class="w"><b>Heads up:</b> ' + esc(w.msg) + '</li>'));
+    $('#msgs').innerHTML = items.join('');
+    const ready = !output.empty && !output.errors.length && output.files.length > 0 && licenseInfo.state !== 'loading';
+    $('#download').disabled = !ready; $('#writeDir').disabled = !ready;
+    $('#count').textContent = ready ? output.files.length + ' files' : '';
+    $('#note').textContent = ready ? 'Unzips to ' + cfg.project + '/' : '';
+  }
+
+  $('#licRetry').addEventListener('click', () => { licenseCache.clear(); lookupLicense(); });
+
+  function renderLoggerNote() {
+    const ks = state.versions.filter((v) => Gen.isMc(v.mc)).map((v) => Gen.loggerKind(v.mc)), has = (k) => ks.includes(k);
+    $('#loggerNote').textContent = !state.logger || !ks.length ? '' :
+      has('log4j') && has('slf4j') ? 'Log4j below Minecraft ' + Gen.LOGGER_FROM + ', SLF4J from there. The imports switch with Stonecutter comments.' :
+      has('log4j') ? 'Log4j (these versions are older than ' + Gen.LOGGER_FROM + ').' : 'SLF4J.';
+  }
+
+  function markInvalid() {
+    document.querySelectorAll('[aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
+    output.errors.forEach((e) => {
+      let m, sel = [];
+      if (!e.field) return;
+      if ((m = /^versions\.(\d+)\.(fabric|forge|neoforge)$/.exec(e.field))) sel = [`[data-bind="versions.${m[1]}.${m[2]}.ver"]`];
+      else if ((m = /^versions\.(\d+)\.loaders$/.exec(e.field))) sel = [`.ver[data-i="${m[1]}"] .lrow input[type=checkbox]`];
+      else if ((m = /^dependencies\.(\d+)$/.exec(e.field))) sel = [`[data-bind="dependencies.${m[1]}.modId"]`];
+      else if ((m = /^modMenu\.links\.(\d+)$/.exec(e.field))) sel = [`[data-bind="modMenu.links.${m[1]}.url"]`];
+      else sel = [`[data-bind="${e.field}"]`];
+      sel.forEach((s) => document.querySelectorAll(s).forEach((el) => el.setAttribute('aria-invalid', 'true')));
+    });
+  }
+
+  function renderTree() {
+    const root = { d: {} };
+    output.files.forEach((f) => {
+      const parts = f.path.split('/'); let n = root;
+      parts.forEach((p, i) => { if (i === parts.length - 1) n.d[p] = { f }; else n = n.d[p] = n.d[p] || { d: {} }; });
+    });
+    const build = (dir, prefix) => Object.keys(dir.d).sort((a, b) => {
+      const da = !!dir.d[a].d, db = !!dir.d[b].d; return da !== db ? (da ? -1 : 1) : a < b ? -1 : 1;
+    }).map((k) => {
+      const node = dir.d[k], p = prefix ? prefix + '/' + k : k;
+      if (node.f) return `<button type="button" class="f" data-path="${esc(node.f.path)}" title="${esc(node.f.path)}" ${node.f.path === selected ? 'aria-current="true"' : ''}>${esc(k)}</button>`;
+      let label = k, cur = node, cp = p;
+      for (;;) { const ks = Object.keys(cur.d); if (ks.length !== 1 || !cur.d[ks[0]].d) break; label += '/' + ks[0]; cur = cur.d[ks[0]]; cp += '/' + ks[0]; }
+      return `<details data-dir="${esc(cp)}" ${openDirs.has(cp) ? 'open' : ''}><summary>${esc(label)}</summary><div>${build(cur, cp)}</div></details>`;
+    }).join('');
+    $('#tree').innerHTML = build(root, '');
+  }
+
+  function renderView() {
+    const f = output.files.find((x) => x.path === selected) || output.files.find((x) => x.path === 'build.gradle.kts');
+    if (!f) { $('#vpath').textContent = ' '; $('#vtext').textContent = ''; $('#copy').hidden = true; return; }
+    selected = f.path;
+    $('#vpath').textContent = f.path + '  ' + size(f.bytes ? f.bytes.length : new TextEncoder().encode(f.text).length);
+    $('#copy').hidden = !!f.bytes;
+    if (f.bytes) {
+      let img = '';
+      if (f.path.endsWith('.png')) { let s = ''; f.bytes.forEach((b) => { s += String.fromCharCode(b); }); img = '<img alt="" src="data:image/png;base64,' + btoa(s) + '">'; }
+      $('#vtext').innerHTML = 'Binary file' + img;
+    } else { const l = f.text.split('\n'); $('#vtext').textContent = l.length > 1500 ? l.slice(0, 1500).join('\n') + '\n...' : f.text; }
+  }
+
+  $('#tree').addEventListener('click', (e) => { const b = e.target.closest('button.f'); if (b) { selected = b.dataset.path; renderTree(); renderView(); } });
+  $('#tree').addEventListener('toggle', (e) => { const d = e.target; if (d.dataset && d.dataset.dir) (d.open ? openDirs.add(d.dataset.dir) : openDirs.delete(d.dataset.dir)); }, true);
+  $('#copy').addEventListener('click', async () => {
+    const f = output.files.find((x) => x.path === selected); if (!f || f.text === undefined) return;
+    try { await navigator.clipboard.writeText(f.text); $('#copy').textContent = 'Copied'; } catch (e) { $('#copy').textContent = 'Couldn\'t copy'; }
+    setTimeout(() => { $('#copy').textContent = 'Copy'; }, 1200);
+  });
+
+  $('#download').addEventListener('click', () => {
+    const cfg = toConfig();
+    const url = URL.createObjectURL(new Blob([Gen.zip(output.files, cfg.project)], { type: 'application/zip' }));
+    const a = document.createElement('a'); a.href = url; a.download = cfg.project + '.zip';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+  });
+
+  if (window.showDirectoryPicker) {
+    $('#writeDir').hidden = false;
+    $('#writeDir').addEventListener('click', async () => {
+      const note = $('#note'), project = toConfig().project;
+      try {
+        const parent = await window.showDirectoryPicker({ mode: 'readwrite' });
+        let dir = null;
+        try { dir = await parent.getDirectoryHandle(project); } catch (e) {}
+        if (dir) {
+          let any = false; for await (const _ of dir.values()) { any = true; break; }
+          if (any && !confirm('The folder "' + project + '" already exists and has files in it. Overwrite the ones with the same names?')) return;
+        } else dir = await parent.getDirectoryHandle(project, { create: true });
+        let n = 0;
+        for (const f of output.files) {
+          const parts = f.path.split('/'); let d = dir;
+          for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
+          const w = await (await d.getFileHandle(parts[parts.length - 1], { create: true })).createWritable();
+          await w.write(f.bytes || f.text); await w.close(); n++;
+        }
+        note.textContent = 'Saved ' + n + ' files to ' + project + '/. Folder saves can\'t mark gradlew as executable, so run chmod +x gradlew once.';
+      } catch (e) { if (e && e.name !== 'AbortError') note.textContent = 'Couldn\'t save the folder: ' + e.message; }
+    });
+  }
+
+  let queued = false;
+  function schedule() { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; recompute(); }); }
+
+  function derive(changed) {
+    const t = state.touched;
+    if (changed === 'name') {
+      if (!t.modId) state.modId = Gen.deriveModId(state.name);
+      if (!t.cls) state.cls = Gen.deriveClass(state.name);
+    }
+    if (!t.project && (changed === 'name' || changed === 'cls')) state.project = state.cls;
+    if (changed === 'github' && state.github.includes('/')) state.githubOwner = state.github.split('/')[0];
+    if (!t.github) state.github = state.githubOwner && state.project ? state.githubOwner + '/' + state.project : '';
+  }
+
+  function onBind(e) {
+    const el = e.target.closest('[data-bind]'); if (!el) return;
+    if (el.type === 'radio' && !el.checked) return;
+    const val = el.type === 'checkbox' ? el.checked : el.value, path = el.dataset.bind;
+    const [obj, key] = bindValue(el); obj[key] = val;
+    if (['modId', 'cls', 'project', 'github'].includes(path)) state.touched[path] = val !== '';
+    if (['name', 'cls', 'project', 'github'].includes(path)) derive(path);
+    let m;
+    if ((m = /^versions\.(\d+)\.mc$/.exec(path))) {
+      const v = state.versions[m[1]];
+      if (!v.javaTouched && Gen.isMc(val)) v.java = Gen.javaForMc(val);
+      const r = el.closest('.ver').querySelector('[data-vcs]');
+      if (r) { if (r.value === state.vcs) state.vcs = val; r.value = val; }
+    }
+    if ((m = /^versions\.(\d+)\.java$/.exec(path))) state.versions[m[1]].javaTouched = true;
+    if (/^versions\.\d+\.\w+\.on$/.test(path)) {
+      el.closest('.lrow').classList.toggle('off', !val);
+      if (/\.fabric\.on$/.test(path)) renderMm();
+    }
+    if (path === 'modMenu.on') renderMm();
+    if (path === 'updateJson.on' || path === 'datagen.on' || path === 'mixins.on' || /^versions\.\d+\.\w+\.on$/.test(path)) renderExtras();
+    if (path === 'iconMode' || path === 'iconColor' || path === 'name') refreshIcon();
+    if (path === 'license' || path === 'licenseFile') lookupLicenseSoon();
+    schedule();
+  }
+  $('#form').addEventListener('input', onBind);
+  $('#form').addEventListener('change', onBind);
+  $('#form').addEventListener('change', (e) => { const r = e.target.closest('[data-vcs]'); if (r) { state.vcs = r.value; schedule(); } });
+
+  async function fetchFor(i) {
+    const v = state.versions[i]; if (!v) return;
+    if (!Gen.isMc(v.mc)) { v.status = 'That isn\'t a Minecraft version.'; v.bad = true; renderVersions(); return; }
+    v.status = 'Checking ' + v.mc + '...'; v.bad = false; renderVersions();
+    const r = await Gen.fetchLatest(v.mc);
+    if (state.versions.indexOf(v) < 0) return;
+    const got = [];
+    if (r.fabricLoader && v.fabric.on) { v.fabric.ver = r.fabricLoader; got.push('Fabric ' + r.fabricLoader); }
+    if (r.fabricApi) { v.fabricApi = r.fabricApi; got.push('Fabric API ' + r.fabricApi); }
+    const wantMm = seed.hasModMenu && state.modMenu.on && v.fabric.on;
+    if (r.modMenu && wantMm) { v.modMenu = r.modMenu; got.push('Mod Menu ' + r.modMenu); }
+    if (r.forge && v.forge.on) { v.forge.ver = r.forge; got.push('Forge ' + r.forge); }
+    if (r.neoforge && v.neoforge.on) { v.neoforge.ver = r.neoforge; got.push('NeoForge ' + r.neoforge); }
+    const none = [];
+    if (v.fabric.on && !r.fabricLoader) none.push('Fabric');
+    if (wantMm && !r.modMenu && !r.errors.some((x) => /^mod menu/.test(x))) none.push('Mod Menu');
+    if (v.forge.on && !r.forge) none.push('Forge');
+    if (v.neoforge.on && !r.neoforge) none.push('NeoForge');
+    v.status = [
+      got.length ? 'Filled in ' + got.join(', ') + '.' : '',
+      r.errors.length ? 'Couldn\'t reach ' + r.errors.map((x) => x.split(':')[0]).join(', ') + ' (you may be offline, or the browser blocked it). Type the versions in by hand.' : '',
+      !r.errors.length && none.length ? 'No ' + none.join(' or ') + ' build found for this Minecraft version.' : '',
+    ].filter(Boolean).join(' ');
+    v.bad = r.errors.length > 0 || none.length > 0;
+    renderVersions(); schedule();
+  }
+
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const card = b.closest('[data-i]'), i = card ? +card.dataset.i : -1;
+    switch (b.dataset.act) {
+      case 'add-version': {
+        const mc = $('#addMc').value.trim(), input = $('#addMc');
+        if (!Gen.isMc(mc) || state.versions.some((v) => v.mc === mc)) { input.setAttribute('aria-invalid', 'true'); return; }
+        input.removeAttribute('aria-invalid'); input.value = '';
+        const neo = Gen.cmpNums(mc, '1.20.2') >= 0;
+        state.versions.push({ mc, java: Gen.javaForMc(mc), bound: '', javaTouched: false, status: '', bad: false,
+          fabric: { on: true, ver: '' }, fabricApi: '', modMenu: '', forge: { on: true, ver: '' }, neoforge: { on: neo, ver: '' } });
+        renderVersions(); renderExtras(); schedule(); fetchFor(state.versions.length - 1); break;
+      }
+      case 'remove-version': {
+        const gone = state.versions.splice(i, 1)[0];
+        if (gone && gone.mc === state.vcs && state.versions.length) state.vcs = state.versions[state.versions.length - 1].mc;
+        renderVersions(); renderExtras(); schedule(); break;
+      }
+      case 'fetch': fetchFor(i); break;
+      case 'fetch-all': state.versions.forEach((_, k) => fetchFor(k)); break;
+      case 'add-mmlink': { const used = new Set(state.modMenu.links.map((l) => l.type)); state.modMenu.links.push({ type: ['discord', 'donate', 'wiki', 'youtube', ...Gen.MODMENU_LINKS].find((t) => !used.has(t)) || 'discord', url: '' }); } renderMm(); schedule(); break;
+      case 'remove-mmlink': state.modMenu.links.splice(i, 1); renderMm(); schedule(); break;
+      case 'add-dep': state.dependencies.push({ type: 'requires', modId: '', range: '*' }); renderDeps(); schedule(); break;
+      case 'remove-dep': state.dependencies.splice(i, 1); renderDeps(); schedule(); break;
+    }
+  });
+
+  renderVersions(); renderDeps(); renderCodeOptions(); renderMm(); renderExtras(); syncInputs(); refreshIcon(); recompute();
+  lookupLicense();
+})();
+</script>
+</body>
+</html>

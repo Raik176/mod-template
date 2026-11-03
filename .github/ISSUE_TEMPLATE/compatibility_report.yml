@@ -1,0 +1,57 @@
+name: Compatibility problem
+description: Example Mod doesn't work together with another mod
+title: "[Compat] "
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when two mods break each other, for example a crash on startup, a missing feature or broken rendering
+        that only happens when both are installed. A plain bug in Example Mod alone belongs in a bug report.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you report
+      options:
+        - label: I searched the existing issues and this isn't reported yet
+          required: true
+        - label: Both mods are the latest versions for my Minecraft version
+          required: true
+  - type: input
+    id: other_mod
+    attributes:
+      label: The other mod
+      description: Its name and a link to its Modrinth, CurseForge or GitHub page.
+    validations:
+      required: true
+  - type: input
+    id: other_version
+    attributes:
+      label: Version of the other mod
+    validations:
+      required: true
+  - type: input
+    id: mod_version
+    attributes:
+      label: Example Mod version
+    validations:
+      required: true
+  - type: input
+    id: minecraft_loader
+    attributes:
+      label: Minecraft version and loader
+      description: For example 1.21.1 on NeoForge.
+    validations:
+      required: true
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What goes wrong?
+      description: Does it happen with only these two mods installed? Does it happen in both directions?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and crash report
+      description: A link to the `latest.log` or crash report uploaded to https://mclo.gs, or drag the file in here.

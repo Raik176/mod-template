@@ -1,0 +1,55 @@
+def node = project.ext.modNode
+def extras = node.mixinExtras
+if (extras == null || !extras.bundle) return
+
+def extrasVersion = extras.version.toString()
+def bundled = "io.github.llamalad7:${extras.artifact}:${extrasVersion}".toString()
+def common = "io.github.llamalad7:mixinextras-common:${extrasVersion}".toString()
+def range = "[${extrasVersion},)".toString()
+
+if (node.loader == 'fabric') {
+    dependencies {
+        annotationProcessor bundled
+        if (node.unobfuscated) {
+            implementation bundled
+        } else {
+            modImplementation bundled
+        }
+        include bundled
+    }
+    return
+}
+
+dependencies {
+    compileOnly common
+    annotationProcessor common
+}
+
+def jarJarExtension = project.extensions.findByName('jarJar')
+if (jarJarExtension != null) {
+    try {
+        jarJarExtension.enable()
+    } catch (MissingMethodException ignored) {
+    }
+}
+
+if (configurations.findByName('jarJar') == null) {
+    logger.warn("[${node.nodeName}] mixinExtras: this toolchain has no 'jarJar' configuration, so MixinExtras is compiled " +
+            "against but not packed into the jar. Pack ${bundled} into the jar by hand, or mixins that use it fail to load.")
+    return
+}
+
+try {
+    dependencies {
+        jarJar(bundled) {
+            version {
+                strictly range
+                prefer extrasVersion
+            }
+        }
+        implementation bundled
+    }
+} catch (Exception e) {
+    logger.warn("[${node.nodeName}] mixinExtras: could not pack ${bundled} into the jar (${e.message}). " +
+            "Add it to your jar-in-jar setup by hand, or mixins that use it fail to load.")
+}

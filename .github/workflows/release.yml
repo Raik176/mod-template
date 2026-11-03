@@ -1,46 +1,64 @@
 name: Release
 
-permissions:
-  contents: write
-
 on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Perform a dry run"
+        description: "Dry run: build and generate the changelog, but create/upload nothing"
         required: false
-        type: boolean
         default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  publish:
-    runs-on: ubuntu-22.04
+  release:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: 21
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Make Gradle executable
-        run: chmod +x ./gradlew
-
-      - name: Build and publish mod
-        run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            export PUBLISH_DRY_RUN=1
-          fi
-          ./gradlew publishMod
+      - name: Publish
         env:
-          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MODRINTH_API_KEY: ${{ secrets.MODRINTH_API_KEY }}
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then publish=false; else publish=true; fi
+          ./gradlew publishMods -Ppublish="$publish" --stacktrace
+
+      - name: Commit update.json
+        if: ${{ !inputs.dry_run }}
+        env:
+          UPDATE_JSON: update.json
+        run: |
+          # publishMods added this release to update.json, which Forge and NeoForge read from the repository
+          if [ -n "$(git status --porcelain -- "$UPDATE_JSON")" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -- "$UPDATE_JSON"
+            git commit -m "chore: update $UPDATE_JSON"
+            git push
+          fi
+
+      - name: Keep dry-run output
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run
+          path: |
+            **/build/changelog/changelog.md
+            update.json
+            **/build/publishMods/**

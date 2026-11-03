@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest an idea or an improvement for Example Mod
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you suggest
+      options:
+        - label: I searched the existing issues and this hasn't been suggested yet
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do that you can't do now?
+      description: The problem or the missing piece, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What should Example Mod do?
+      description: Describe the feature as you imagine it. Mockups and screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other mods or workarounds you tried, and why they don't fit.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Which Minecraft versions or loaders you need it on, if it matters.

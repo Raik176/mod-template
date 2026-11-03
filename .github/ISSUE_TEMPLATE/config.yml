@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Bug that also happens in vanilla Minecraft
+    url: https://bugs.mojang.com/
+    about: If it happens without any mods installed, it belongs in Mojang's bug tracker, not here.

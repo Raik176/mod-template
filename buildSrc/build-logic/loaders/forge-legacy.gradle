@@ -1,0 +1,43 @@
+def node = project.ext.modNode
+
+legacyForge {
+    version = "${node.mc}-${node.loaderVersion}"
+
+    if (node.accessTransformer) {
+        try {
+            accessTransformers.from(node.accessTransformer)
+        } catch (MissingMethodException | MissingPropertyException e) {
+            logger.warn("[${node.nodeName}] could not register the access transformer: ${e.message}")
+        }
+    }
+
+    runs {
+        client {
+            client()
+            gameDirectory = node.runDir
+            disableIdeRun()
+        }
+        server {
+            server()
+            gameDirectory = node.runDir
+            programArgument '--nogui'
+            disableIdeRun()
+        }
+    }
+
+    mods {
+        "${node.modId}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+if (node.mixinConfigs) {
+    dependencies {
+        annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    }
+    mixin {
+        add sourceSets.main, node.refmapName
+        node.mixinConfigs.each { config it }
+    }
+}

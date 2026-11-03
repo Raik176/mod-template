@@ -1,0 +1,55 @@
+def node = project.ext.modNode
+
+
+if (node.modMenu) {
+    repositories {
+        maven {
+            name = "Terraformers"
+            url = "https://maven.terraformersmc.com/"
+            content { includeGroup("com.terraformersmc") }
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${node.mc}"
+
+    if (node.unobfuscated) {
+        implementation "net.fabricmc:fabric-loader:${node.loaderVersion}"
+        if (node.fabricApi) implementation "net.fabricmc.fabric-api:fabric-api:${node.fabricApi}"
+        if (node.modMenu) {
+            compileOnly "com.terraformersmc:modmenu:${node.modMenu}"
+            if (node.modMenuRuntime) runtimeOnly "com.terraformersmc:modmenu:${node.modMenu}"
+        }
+    } else {
+        mappings loom.officialMojangMappings()
+        modImplementation "net.fabricmc:fabric-loader:${node.loaderVersion}"
+        if (node.fabricApi) modImplementation "net.fabricmc.fabric-api:fabric-api:${node.fabricApi}"
+        if (node.modMenu) {
+            modCompileOnly "com.terraformersmc:modmenu:${node.modMenu}"
+            if (node.modMenuRuntime) modLocalRuntime "com.terraformersmc:modmenu:${node.modMenu}"
+        }
+    }
+}
+
+loom {
+    if (node.classTweaker) {
+        accessWidenerPath = node.classTweaker
+    }
+
+    runConfigs.configureEach {
+        ideConfigGenerated(false)
+    }
+}
+
+if (node.datagen) {
+    fabricApi {
+        configureDataGeneration {
+            outputDirectory = node.datagen.output
+            modId = node.modId
+            client = node.datagen.client
+            strictValidation = node.datagen.strictValidation
+            addToResources = false
+        }
+    }
+}
